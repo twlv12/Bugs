@@ -37,14 +37,14 @@ screenSize = 720
 genomeComplexity = 4
 
 #---TO-DO---
-#Implement connection conversion from binary and float remapping
-#Create brain structure using genome
-#Possibly filter redundant genes?
-# ¦> May slow evolution as creatures might not be able to make new neurons? ->ask chatgpt
-# ¦> start thinking about mutation function - bitwise mutation or random?
+#Add neuron functions and insert neuron activation after reset in brainStep()
+#
+#
+#
 
 
 bugsList = []
+
 
 def createGenome(genomeLength):
     numInternalNeurons = 0
@@ -81,12 +81,32 @@ def createGenome(genomeLength):
         genome += gene
     return genome
         
-def createBrain(genome):
-    brain = Brain()
 
-def initializeBug(pos):
-    brain = createBrain()
-    bug = Bug(pos, brain)
+def createBrain(genome):
+    neuronMap = {}
+    def getOrCreateNeuron(type, ID): #ensuring no redundant are created
+        key = (type, ID)
+        if key not in neuronMap:
+            neuronMap[key] = Neuron(type, ID)
+        return neuronMap[key] #returns the neuron object from dict
+    
+    brain = Brain(genome)
+    decodedGenome = visualizer.decode(genome, inputNeurons, outputNeurons)
+    for gene in decodedGenome:
+        #gene:: sType, sID, tType, tID, cType, weight
+        sourceNeuron = getOrCreateNeuron(gene[0], gene[1])
+        targetNeuron = getOrCreateNeuron(gene[2], gene[3])
+        brain.createConnection(sourceNeuron, targetNeuron, gene[4], gene[5])
+    
+    return brain
+
+
+def initializeBug(genome=None): #optionally takes in genome, if not creates one
+    if genome == None:
+        genome = createGenome(genomeComplexity)
+    brain = createBrain(genome)
+    return Bug((0,0), brain) #pos is 0,0 - no world yet
+
 
 class Bug:
     def __init__(self, pos, brain):
@@ -96,20 +116,27 @@ class Bug:
 class Brain:
     def __init__(self, genome):
         self.genome = genome
-        self.neurons = []
-        self.connections = []
+        self.neuronMap = {} #ID: Object
+        self.connectionMap = {} #Source ID: List of outgoing connections
         
     def brainStep(self):
-        for neuron in self.neurons:
+        for neuron in self.neuronMap.values():
             neuron.value = 0
-        for connection in self.connections:
+            #add neuron execution function here
+        for connection in self.connectionMap.values():
             connection.transmit()
+
+
+    def createConnection(self, source, target, connectionType, weight):
+        connection = Connection(source, target, connectionType, weight)
+        if source.ID not in self.connectionMap:
+            self.connectionMap[source.ID] = []
+        self.connectionMap[source.ID].append(connection)
     
     
 class Neuron:
-    def __init__(self, type, function, ID):
+    def __init__(self, type, ID):
         self.type = type
-        self.function = function
         self.ID = ID
         self.value = 0
             
@@ -120,7 +147,6 @@ class Connection:
         self.target = target
         self.type = type
         self.weight = weight
-        #MUST CONVERT THESE VALUES FROM BIN6
         
     def transmit(self):
         if self.type == "excitor": #00
@@ -131,4 +157,7 @@ class Connection:
             self.target.value = -(self.source.value * self.weight)
 
 
-visualizer.createGraph(createGenome(genomeComplexity))
+for i in range(5):
+    bugsList.append(initializeBug())
+
+visualizer.createGraph(bugsList)

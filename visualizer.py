@@ -28,13 +28,13 @@ outputNeurons = {
     "Jitter" : "00101",
     }
 
-def decode(genome):
+def decode(genome, inputDict=inputNeurons, outputDict=outputNeurons):
     decodedGenome = []
     for i in range(len(genome)//20):
         gene = genome[:20]
 
         if gene[:2] == "00": 
-            sourceDict = inputNeurons.copy()
+            sourceDict = inputDict.copy()
             sourceType = "input"
         if gene[:2] == "01": 
             sourceDict = outputNeurons.copy()
@@ -46,13 +46,13 @@ def decode(genome):
         if sourceDict != "internal":
             #get neuron function from correct table using source indicator
             sourceID = list(sourceDict.keys())[list(sourceDict.values()).index(str(gene[2:7]))]
-        else: sourceID = "Internal"+str(int(gene[2:7], 2))
+        else: sourceID = "internal"+str(int(gene[2:7], 2))
 
         if gene[7:9] == "00": 
-            targetDict = inputNeurons.copy()
+            targetDict = inputDict.copy()
             targetType = "input"
         if gene[7:9] == "01": 
-            targetDict = outputNeurons.copy()
+            targetDict = outputDict.copy()
             targetType = "output"
         if gene[7:9] == "10": 
             targetDict = "internal"
@@ -60,7 +60,7 @@ def decode(genome):
 
         if targetDict != "internal":
             targetID = list(targetDict.keys())[list(targetDict.values()).index(str(gene[9:14]))]
-        else: targetID = "Internal"+str(int(gene[9:14], 2))
+        else: targetID = "internal"+str(int(gene[9:14], 2))
 
         if gene[14:16] == "00": connectionType = "excitor"
         elif gene[14:16] == "01": connectionType = "inhibitor"
@@ -73,10 +73,11 @@ def decode(genome):
         gene = [sourceType, sourceID, targetType, targetID, connectionType, mappedWeight]
         decodedGenome.append(gene)
         genome = genome[20:]
+    #print(decodedGenome)
     return decodedGenome
 
 
-def createGraph(input):
+def createGraph(input, figureNum):
     genome = decode(input)
 
     graph = nx.DiGraph()
@@ -111,5 +112,6 @@ def createGraph(input):
         connectionWidths.append(connectionWidth)
 
     layout = nx.circular_layout(graph)
+    plt.figure(i)
     nx.draw(graph, layout, with_labels=True, node_size=4000, font_weight="bold", node_color=nodeColours, edge_color=connectionColours, width=connectionWidths, font_size=10)
     plt.show()
